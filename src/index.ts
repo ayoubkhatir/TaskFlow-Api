@@ -1,12 +1,15 @@
 import { cors } from 'hono/cors';
 import { authRouter } from './routers/auth.router';
 import { Hono } from 'hono';
+import { tasksRouter } from './routers/tasks.router';
+
 
 const app = new Hono();
 
 
 app.use("*", cors({
     origin: "http://localhost:3000",
+    credentials: true,
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization"],
 }));
@@ -16,7 +19,7 @@ app.get('/', (c) => {
 })
 
 app.route('/auth', authRouter)
-
+app.route('/tasks', tasksRouter)
 
 app.get('/todos', (c) => {
     return c.json([

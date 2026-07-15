@@ -1,6 +1,9 @@
+import { sql } from "drizzle-orm";
 import { integer, pgEnum, pgTable, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 
 export const priorityEnum = pgEnum("priority", ["low", "medium", "high"]);
+export const statusEnum = pgEnum("status", ["all", "pending", "in-progress", "completed"]);
+export const categoryEnum = pgEnum("category", ["work", "personal", "other"]);
 
 export const usersTable = pgTable("users", {
     id: uuid("id").defaultRandom().primaryKey(),
@@ -14,10 +17,19 @@ export const usersTable = pgTable("users", {
 
 export const tasksTable = pgTable("tasks", {
     id: uuid("id").defaultRandom().primaryKey(),
-    userId: uuid("userId").notNull(),
-    content: varchar({ length: 255 }),
+    userId: uuid("userId").references(() => usersTable.id),
     title: varchar({ length: 100 }).notNull(),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    description: varchar({ length: 255 }).notNull(),
     priority: priorityEnum().notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    status: statusEnum().default("all").notNull(),
+    dueDate: timestamp("dueDate", { mode: "string" }).notNull(),
+    category: categoryEnum().default("other").notNull()
 });
 
+export const sessionsTable = pgTable("sessions", {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("userId").references(() => usersTable.id),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    expiresAt: timestamp("expiresAt").default(sql`NOW() + INTERVAL '30 days'`).notNull()
+})
