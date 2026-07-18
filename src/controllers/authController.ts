@@ -2,12 +2,13 @@ import { eq } from "drizzle-orm";
 import db from "../db";
 import { sessionsTable, usersTable } from "../db/schema";
 import PasswordHasher from "../utils/passwordHasher";
-import { LoginType, NewUser, Session } from "../types/Types";
 import { ApiResponse, ErrorCodes, fail, success } from "../types/apiTypes";
+import { LoginUserInput, RegisterUserInput, Session } from "../types/authTypes";
+import { NewUser } from "../types/userTypes";
 
 
 class AuthController {
-    async register(user: NewUser): Promise<ApiResponse<NewUser>> {
+    async register(user: RegisterUserInput): Promise<ApiResponse<NewUser>> {
         try {
             const normalisedEmail = user.email.trim().toLowerCase()
 
@@ -16,7 +17,7 @@ class AuthController {
                 return fail(ErrorCodes.EMAIL_ALREADY_EXISTS, "this email is already used")
             }
             const hashedPassword = await PasswordHasher.hash(user.password);
-            const newUser = { ...user, password: hashedPassword }
+            const newUser: NewUser = { ...user, password: hashedPassword }
             await db.insert(usersTable).values(newUser)
             return success(newUser, "user created successfully")
         }
@@ -26,7 +27,7 @@ class AuthController {
         }
     }
 
-    async login(user: LoginType): Promise<ApiResponse<Session>> {
+    async login(user: LoginUserInput): Promise<ApiResponse<Session>> {
 
         const normalisedEmail = user.email.trim().toLowerCase()
         try {
@@ -56,6 +57,20 @@ class AuthController {
             console.error({ error })
             return fail(ErrorCodes.INTERNAL_SERVER_ERROR, "user login failed")
         }
+    }
+
+    async logout(sessionId: string) {
+        if (!sessionId) {
+            return fail(ErrorCodes.UNAUTHORIZED, "this user is unauthorised")
+        }
+        try {
+            await db.delete(sessionsTable).where(eq(sessionsTable.id, sessionId))
+            return success(null, "user logged out successfully")
+        } catch (error) {
+            console.log(error)
+            return fail(ErrorCodes.INTERNAL_SERVER_ERROR, "something went wrong")
+        }
+
     }
 
 }
